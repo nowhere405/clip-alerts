@@ -121,12 +121,62 @@ def facebook_clips(page_id, token):
     return clips
 
 
+# --- Valorant ----------------------------------------------------------------
+
+def strip_tags(html):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+
+
+def valorant_matches():
+    """Every match on the vlr.gg schedule page, with its status (LIVE, Upcoming)."""
+    page = fetch("https://www.vlr.gg/matches")
+    starts = list(re.finditer(r'<a href="(/\d+/[^"]+)"[^>]*class="[^"]*\bmatch-item\b', page))
+    matches = []
+    for i, m in enumerate(starts):
+        block = page[m.start():starts[i + 1].start() if i + 1 < len(starts) else len(page)]
+        teams = [strip_tags(t) for t in re.findall(
+            r'class="match-item-vs-team-name">(.*?)</div>\s*</div>', block, re.S)]
+        status = re.search(r'class="ml-status">\s*([^<]+)', block)
+        event = re.search(r'class="match-item-event[^"]*">(.*?)</a>|class="match-item-event[^"]*">(.*)', block, re.S)
+        event_text = strip_tags(next(g for g in event.groups() if g)) if event else ""
+        series = re.search(r'class="match-item-event-series[^"]*">(.*?)</div>', block, re.S)
+        series_text = strip_tags(series.group(1)) if series else ""
+        if series_text and event_text.startswith(series_text):
+            event_text = event_text[len(series_text):].strip()
+        matches.append({
+            "id": m.group(1),
+            "url": "https://www.vlr.gg" + m.group(1),
+            "teams": teams[:2],
+            "status": status.group(1).strip() if status else "",
+            "event": event_text,
+            "series": series_text,
+        })
+    return matches
+
+
+def valorant_live(event_filter):
+    return [
+        {"id": m["id"], "url": m["url"], "teams": m["teams"], "event": m["event"], "series": m["series"]}
+        for m in valorant_matches()
+        if m["status"].upper() == "LIVE" and event_filter.lower() in m["event"].lower()
+    ]
+
+
 # --- Discord -----------------------------------------------------------------
 
-def announce(webhook, platform, clip):
-    title = clip["title"] or "New clip"
-    body = json.dumps({"content": f"🎬 **New {platform} clip is up!**\n{title}\n{clip['url']}"}).encode()
+def post(webhook, content):
+    body = json.dumps({"content": content}).encode()
     fetch(webhook, data=body, headers={"Content-Type": "application/json"})
+
+
+def announce(webhook, platform, clip):
+    if platform == "Valorant":
+        teams = " vs ".join(clip["teams"]) or "A match"
+        where = " · ".join(x for x in (clip["event"], clip["series"]) if x)
+        post(webhook, f"🔴 **LIVE NOW: {teams}**\n{where}\n<{clip['url']}>")
+        return
+    title = clip["title"] or "New clip"
+    post(webhook, f"🎬 **New {platform} clip is up!**\n{title}\n{clip['url']}")
 
 
 # --- Main --------------------------------------------------------------------
@@ -162,6 +212,8 @@ def main():
         sources.append(("TikTok", lambda: tiktok_clips(env("TIKTOK_USERNAME"), env("TIKTOK_RSS_URL"))))
     if env("FACEBOOK_PAGE_ID") and env("FACEBOOK_PAGE_TOKEN"):
         sources.append(("Facebook", lambda: facebook_clips(env("FACEBOOK_PAGE_ID"), env("FACEBOOK_PAGE_TOKEN"))))
+    if env("VALORANT_EVENT"):
+        sources.append(("Valorant", lambda: valorant_live(env("VALORANT_EVENT"))))
     if not sources:
         sys.exit("No platforms are set up yet")
 
@@ -175,7 +227,8 @@ def main():
             failed.append(platform)
             continue
 
-        first_run = platform not in state
+        # Old clips are only remembered on a first run; live matches are news right away.
+        first_run = platform not in state and platform != "Valorant"
         seen = state.setdefault(platform, [])
         new = []
         for c in clips:
@@ -184,7 +237,7 @@ def main():
         # Feeds list newest first; announce oldest first so Discord reads in order.
         for clip in reversed(new):
             if not first_run:
-                announce(webhook, platform, clip)
+                announce(env("VALORANT_WEBHOOK_URL") or webhook if platform == "Valorant" else webhook, platform, clip)
                 print(f"{platform}: announced {clip['url']}")
             seen.append(clip["id"])
         state[platform] = seen[-MAX_REMEMBERED:]

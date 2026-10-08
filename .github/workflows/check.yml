@@ -37,6 +37,8 @@ jobs:
           TIKTOK_RSS_URL: ${{ secrets.TIKTOK_RSS_URL }}
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+          VALORANT_EVENT: "Valorant Champions"
+          VALORANT_WEBHOOK_URL: ${{ secrets.VALORANT_WEBHOOK_URL }}
         run: python check.py
       - name: Save what was seen
         if: always()

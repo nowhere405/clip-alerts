@@ -1,0 +1,16 @@
+name: Probe vlr.gg
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python -c "
+          import check, json
+          ms = check.valorant_matches()
+          print(len(ms), 'matches')
+          for m in ms[:12]: print(json.dumps(m, ensure_ascii=False))
+          print('LIVE champions:', check.valorant_live('Valorant Champions'))
+          "
+          curl -s https://www.vlr.gg/matches | grep -n -m3 -A40 'match-item ' | head -80
