@@ -15,6 +15,7 @@ its existing clips are only remembered, so old clips are never announced.
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -80,11 +81,26 @@ def rss_clips(feed_url):
 
 
 def tiktok_clips(username, feed_url):
-    username = username.lstrip("@")
     if feed_url:
         return rss_clips(feed_url)
-    # TikTok has no official feed; RSSHub's public instance is the free fallback.
-    return rss_clips(f"https://rsshub.app/tiktok/user/@{urllib.parse.quote(username)}")
+    # TikTok has no official feed, so yt-dlp reads the public profile page.
+    username = username.lstrip("@")
+    out = subprocess.run(
+        ["yt-dlp", "--flat-playlist", "--playlist-end", "10", "-J",
+         f"https://www.tiktok.com/@{username}"],
+        capture_output=True, text=True, timeout=120,
+    )
+    if out.returncode != 0:
+        raise RuntimeError(out.stderr.strip().splitlines()[-1] if out.stderr.strip() else "yt-dlp failed")
+    clips = []
+    for entry in json.loads(out.stdout).get("entries") or []:
+        video_id = str(entry.get("id") or "")
+        url = entry.get("url") or f"https://www.tiktok.com/@{username}/video/{video_id}"
+        if not url.startswith("http"):
+            url = f"https://www.tiktok.com/@{username}/video/{video_id}"
+        title = (entry.get("title") or entry.get("description") or "").split("\n")[0][:150]
+        clips.append({"id": video_id, "title": title, "url": url})
+    return clips
 
 
 # --- Facebook Page -----------------------------------------------------------

@@ -21,5 +21,5 @@ Then go to **Actions → Check for new clips → Run workflow** once. The first 
 ## Notes
 
 - Alerts arrive about 10 to 15 minutes after a clip goes live. GitHub can sometimes run the check a bit late.
-- TikTok has no official feed. By default the check uses the free public RSSHub service, which sometimes fails. If TikTok alerts stop, set `TIKTOK_RSS_URL` to another RSS feed of your profile (for example, one from rss.app).
+- TikTok has no official feed. By default the check reads your public profile with yt-dlp, which sometimes breaks when TikTok changes things. If TikTok alerts stop, set `TIKTOK_RSS_URL` to another RSS feed of your profile (for example, one from rss.app).
 - `state.json` is the list of clips already announced. Don't delete it unless you want everything re-remembered.
