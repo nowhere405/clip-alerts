@@ -18,6 +18,10 @@ Leave out any platform you don't want checked.
 
 Then go to **Actions → Check for new clips → Run workflow** once. The first run only remembers your existing clips, so nothing old gets posted. After that, every new clip is announced.
 
+## Valorant live alerts
+
+When a Valorant Champions match goes live on vlr.gg, the channel gets a "LIVE NOW: Team A vs Team B" message. To send these to a different channel, make a webhook there and save it as the secret `VALORANT_WEBHOOK_URL`. To follow a different event, change `VALORANT_EVENT` in `.github/workflows/check.yml`.
+
 ## Notes
 
 - Alerts arrive about 10 to 15 minutes after a clip goes live. GitHub can sometimes run the check a bit late.

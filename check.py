@@ -12,6 +12,7 @@ Seen clip ids are kept in state.json. The first time a platform is checked,
 its existing clips are only remembered, so old clips are never announced.
 """
 
+import html as html_lib
 import json
 import os
 import re
@@ -124,7 +125,7 @@ def facebook_clips(page_id, token):
 # --- Valorant ----------------------------------------------------------------
 
 def strip_tags(html):
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+    return re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", html))).strip()
 
 
 def valorant_matches():
