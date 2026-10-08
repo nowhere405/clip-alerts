@@ -150,6 +150,11 @@ def main():
     if not webhook:
         sys.exit("DISCORD_WEBHOOK_URL is not set")
 
+    if env("SEND_TEST") == "true":
+        announce(webhook, "test", {"title": "This is a test. Real clip alerts will look like this.", "url": "https://github.com/nowhere405/clip-alerts"})
+        print("test message sent")
+        return
+
     sources = []
     if env("YOUTUBE_CHANNEL"):
         sources.append(("YouTube", lambda: youtube_clips(env("YOUTUBE_CHANNEL"))))

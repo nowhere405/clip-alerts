@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
+    inputs:
+      send_test:
+        description: "Send a test message to Discord instead of checking"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -25,6 +30,7 @@ jobs:
         run: pip install --quiet --upgrade yt-dlp
       - name: Check platforms
         env:
+          SEND_TEST: ${{ inputs.send_test }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           YOUTUBE_CHANNEL: ${{ secrets.YOUTUBE_CHANNEL }}
           TIKTOK_USERNAME: ${{ secrets.TIKTOK_USERNAME }}
