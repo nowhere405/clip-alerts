@@ -1,0 +1,39 @@
+name: Check for new clips
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-clips
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check platforms
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          YOUTUBE_CHANNEL: ${{ secrets.YOUTUBE_CHANNEL }}
+          TIKTOK_USERNAME: ${{ secrets.TIKTOK_USERNAME }}
+          TIKTOK_RSS_URL: ${{ secrets.TIKTOK_RSS_URL }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        run: python check.py
+      - name: Save what was seen
+        if: always()
+        run: |
+          git config user.name "clip-alerts"
+          git config user.email "clip-alerts@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "Update seen clips" && git push)
