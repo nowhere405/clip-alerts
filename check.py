@@ -203,6 +203,13 @@ def main():
 
     if env("SEND_TEST") == "true":
         announce(webhook, "test", {"title": "This is a test. Real clip alerts will look like this.", "url": "https://github.com/nowhere405/clip-alerts"})
+        if env("VALORANT_WEBHOOK_URL"):
+            announce(env("VALORANT_WEBHOOK_URL"), "Valorant", {
+                "teams": ["Team A", "Team B"],
+                "event": "This is a test. Real match alerts will look like this.",
+                "series": "",
+                "url": "https://www.vlr.gg/matches",
+            })
         print("test message sent")
         return
 
