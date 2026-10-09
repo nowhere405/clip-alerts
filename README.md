@@ -22,6 +22,10 @@ Then go to **Actions → Check for new clips → Run workflow** once. The first 
 
 When a Valorant Champions match goes live on vlr.gg, the channel gets a "LIVE NOW: Team A vs Team B" message. To send these to a different channel, make a webhook there and save it as the secret `VALORANT_WEBHOOK_URL`. To follow a different event, change `VALORANT_EVENT` in `.github/workflows/check.yml`.
 
+## Earth's Changelog
+
+New stories from changelog.earth are posted together as one message whenever they appear (usually once a day). To send them to a different channel, save that channel's webhook as the secret `CHANGELOG_WEBHOOK_URL`.
+
 ## Notes
 
 - Alerts arrive about 10 to 15 minutes after a clip goes live. GitHub can sometimes run the check a bit late.

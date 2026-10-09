@@ -37,6 +37,8 @@ jobs:
           TIKTOK_RSS_URL: ${{ secrets.TIKTOK_RSS_URL }}
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+          CHANGELOG_FEED: "https://www.changelog.earth/feed.xml"
+          CHANGELOG_WEBHOOK_URL: ${{ secrets.CHANGELOG_WEBHOOK_URL }}
           VALORANT_EVENT: "Valorant Champions"
           VALORANT_WEBHOOK_URL: ${{ secrets.VALORANT_WEBHOOK_URL }}
         run: python check.py

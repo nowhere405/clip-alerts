@@ -180,6 +180,17 @@ def announce(webhook, platform, clip):
     post(webhook, f"🎬 **New {platform} clip is up!**\n{title}\n{clip['url']}")
 
 
+def announce_changelog(webhook, stories):
+    lines = ["🌍 **New on Earth's Changelog**"]
+    for story in stories:
+        line = f"• {story['title']} <{story['url']}>"
+        if len("\n".join(lines + [line])) > 1900:
+            lines.append("…and more at <https://www.changelog.earth>")
+            break
+        lines.append(line)
+    post(webhook, "\n".join(lines))
+
+
 # --- Main --------------------------------------------------------------------
 
 def load_state():
@@ -220,6 +231,8 @@ def main():
         sources.append(("TikTok", lambda: tiktok_clips(env("TIKTOK_USERNAME"), env("TIKTOK_RSS_URL"))))
     if env("FACEBOOK_PAGE_ID") and env("FACEBOOK_PAGE_TOKEN"):
         sources.append(("Facebook", lambda: facebook_clips(env("FACEBOOK_PAGE_ID"), env("FACEBOOK_PAGE_TOKEN"))))
+    if env("CHANGELOG_FEED"):
+        sources.append(("Changelog", lambda: rss_clips(env("CHANGELOG_FEED"))))
     if env("VALORANT_EVENT"):
         sources.append(("Valorant", lambda: valorant_live(env("VALORANT_EVENT"))))
     if not sources:
@@ -243,8 +256,12 @@ def main():
             if c["id"] and c["id"] not in seen and c["id"] not in (n["id"] for n in new):
                 new.append(c)
         # Feeds list newest first; announce oldest first so Discord reads in order.
+        if platform == "Changelog" and new and not first_run:
+            # A few stories land at once each day, so they go out as one message.
+            announce_changelog(env("CHANGELOG_WEBHOOK_URL") or webhook, list(reversed(new)))
+            print(f"Changelog: announced {len(new)} stories")
         for clip in reversed(new):
-            if not first_run:
+            if not first_run and platform != "Changelog":
                 announce(env("VALORANT_WEBHOOK_URL") or webhook if platform == "Valorant" else webhook, platform, clip)
                 print(f"{platform}: announced {clip['url']}")
             seen.append(clip["id"])
