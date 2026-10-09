@@ -28,6 +28,6 @@ New stories from changelog.earth are posted together as one message whenever the
 
 ## Notes
 
-- Alerts arrive about 10 to 15 minutes after a clip goes live. GitHub can sometimes run the check a bit late.
+- GitHub's own schedule can run hours late, so a free cron-job.org job starts the check every 5 minutes (a POST to the workflow's `dispatches` API with a fine-grained token that has Actions read and write). Alerts arrive about 5 minutes after something is posted. The GitHub schedule stays as a backup.
 - TikTok has no official feed. By default the check reads your public profile with yt-dlp, which sometimes breaks when TikTok changes things. If TikTok alerts stop, set `TIKTOK_RSS_URL` to another RSS feed of your profile (for example, one from rss.app).
 - `state.json` is the list of clips already announced. Don't delete it unless you want everything re-remembered.
