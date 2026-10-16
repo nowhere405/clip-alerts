@@ -128,15 +128,18 @@ def strip_tags(html):
     return re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", html))).strip()
 
 
-def valorant_matches():
-    """Every match on the vlr.gg schedule page, with its status (LIVE, Upcoming)."""
-    page = fetch("https://www.vlr.gg/matches")
+def valorant_matches(page_url="https://www.vlr.gg/matches"):
+    """Every match on a vlr.gg match list, with its status (LIVE, Upcoming, Completed)."""
+    page = fetch(page_url)
     starts = list(re.finditer(r'<a href="(/\d+/[^"]+)"[^>]*class="[^"]*\bmatch-item\b', page))
     matches = []
     for i, m in enumerate(starts):
         block = page[m.start():starts[i + 1].start() if i + 1 < len(starts) else len(page)]
         teams = [strip_tags(t) for t in re.findall(
             r'class="match-item-vs-team-name">(.*?)</div>\s*</div>', block, re.S)]
+        scores = [strip_tags(x) for x in re.findall(
+            r'class="match-item-vs-team-score[^"]*">(.*?)</div>', block, re.S)]
+        winner = re.findall(r'class="match-item-vs-team( mod-winner)?\s*"', block)
         status = re.search(r'class="ml-status">\s*([^<]+)', block)
         event = re.search(r'class="match-item-event[^"]*">(.*?)</a>|class="match-item-event[^"]*">(.*)', block, re.S)
         event_text = strip_tags(next(g for g in event.groups() if g)) if event else ""
@@ -148,6 +151,8 @@ def valorant_matches():
             "id": m.group(1),
             "url": "https://www.vlr.gg" + m.group(1),
             "teams": teams[:2],
+            "scores": scores[:2],
+            "winner": next((teams[j] for j, w in enumerate(winner[:2]) if w and j < len(teams)), ""),
             "status": status.group(1).strip() if status else "",
             "event": event_text,
             "series": series_text,
@@ -163,6 +168,13 @@ def valorant_live(event_filter):
     ]
 
 
+def valorant_results(event_filter):
+    return [
+        m for m in valorant_matches("https://www.vlr.gg/matches/results")
+        if m["status"].lower() == "completed" and event_filter.lower() in m["event"].lower()
+    ]
+
+
 # --- Discord -----------------------------------------------------------------
 
 def post(webhook, content):
@@ -175,6 +187,15 @@ def announce(webhook, platform, clip):
         teams = " vs ".join(clip["teams"]) or "A match"
         where = " · ".join(x for x in (clip["event"], clip["series"]) if x)
         post(webhook, f"🔴 **LIVE NOW: {teams}**\n{where}\n<{clip['url']}>")
+        return
+    if platform == "Valorant result":
+        a, b = (clip["teams"] + ["?", "?"])[:2]
+        sa, sb = (clip["scores"] + ["", ""])[:2]
+        where = " · ".join(x for x in (clip["event"], clip["series"]) if x)
+        lines = [f"🏆 **FINAL: {a} {sa}–{sb} {b}**"]
+        if clip["winner"]:
+            lines.append(f"**{clip['winner']}** win!")
+        post(webhook, "\n".join(lines + [where, f"<{clip['url']}>"]))
         return
     title = clip["title"] or "New clip"
     post(webhook, f"🎬 **New {platform} clip is up!**\n{title}\n{clip['url']}")
@@ -221,6 +242,11 @@ def main():
                 "series": "",
                 "url": "https://www.vlr.gg/matches",
             })
+            announce(env("VALORANT_WEBHOOK_URL"), "Valorant result", {
+                "teams": ["Team A", "Team B"], "scores": ["2", "1"], "winner": "Team A",
+                "event": "This is a test. Real results will look like this.",
+                "series": "", "url": "https://www.vlr.gg/matches/results",
+            })
         print("test message sent")
         return
 
@@ -235,6 +261,7 @@ def main():
         sources.append(("Changelog", lambda: rss_clips(env("CHANGELOG_FEED"))))
     if env("VALORANT_EVENT"):
         sources.append(("Valorant", lambda: valorant_live(env("VALORANT_EVENT"))))
+        sources.append(("Valorant result", lambda: valorant_results(env("VALORANT_EVENT"))))
     if not sources:
         sys.exit("No platforms are set up yet")
 
@@ -262,7 +289,7 @@ def main():
             print(f"Changelog: announced {len(new)} stories")
         for clip in reversed(new):
             if not first_run and platform != "Changelog":
-                announce(env("VALORANT_WEBHOOK_URL") or webhook if platform == "Valorant" else webhook, platform, clip)
+                announce(env("VALORANT_WEBHOOK_URL") or webhook if platform.startswith("Valorant") else webhook, platform, clip)
                 print(f"{platform}: announced {clip['url']}")
             seen.append(clip["id"])
         state[platform] = seen[-MAX_REMEMBERED:]

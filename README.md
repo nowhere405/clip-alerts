@@ -20,7 +20,7 @@ Then go to **Actions → Check for new clips → Run workflow** once. The first 
 
 ## Valorant live alerts
 
-When a Valorant Champions match goes live on vlr.gg, the channel gets a "LIVE NOW: Team A vs Team B" message. To send these to a different channel, make a webhook there and save it as the secret `VALORANT_WEBHOOK_URL`. To follow a different event, change `VALORANT_EVENT` in `.github/workflows/check.yml`.
+When a Valorant Champions match goes live on vlr.gg, the channel gets a "LIVE NOW: Team A vs Team B" message. When it finishes, a "FINAL" message follows with the score and the winner. To send these to a different channel, make a webhook there and save it as the secret `VALORANT_WEBHOOK_URL`. To follow a different event, change `VALORANT_EVENT` in `.github/workflows/check.yml`.
 
 ## Earth's Changelog
 
